@@ -9,8 +9,7 @@ Runs a local HTTP server on http://127.0.0.1:45455 and returns JSON with current
 Supports Spotify, Apple Music, Yandex Music, YouTube, browser audio, and other Windows media apps.
 
 ## Usage
-
-Just run `MediaBridge.exe` from the release. It will start listening on port 45455.
+Just install and run `MediaBridge.exe` [from the release](https://github.com/qhols/DynamicIsland/releases/latest). It will start listening on port 45455.
 
 ## Building from source
 
