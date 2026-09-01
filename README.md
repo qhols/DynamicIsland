@@ -33,10 +33,10 @@ cmake ..
 cmake --build . --config Release
 ```
 
-## API
-
-- `GET /media` - returns current track info, cover, and waveform
+- `GET /media` - returns current track info, cover, dominant color, and waveform
 - `GET /media/playpause` - toggle play/pause
 - `GET /media/next` - next track
 - `GET /media/prev` - previous track
+- `GET /media/shuffle` - toggle shuffle mode
+- `GET /media/repeat` - toggle repeat mode (None -> List -> Track)
 - `GET /media/like` - toggle like on Spotify (sends Alt+Shift+B)
