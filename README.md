@@ -28,7 +28,6 @@ g++ -std=c++17 -O3 main.cpp -o ../bin/MediaBridge.exe -static -static-libgcc -st
 
 Using CMake:
 ```cmd
-cd cpp_source
 mkdir build && cd build
 cmake ..
 cmake --build . --config Release
