@@ -18,7 +18,6 @@ Requirements: g++ (MinGW-w64) or CMake.
 
 Using GCC / batch script:
 ```cmd
-cd cpp_source
 build.bat
 ```
 
