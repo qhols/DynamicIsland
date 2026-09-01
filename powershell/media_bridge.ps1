@@ -99,76 +99,129 @@ namespace WinRtHelper {
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
         [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr ProcessId);
+
+        [DllImport("user32.dll")]
+        public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetCurrentThreadId();
+
+        [DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
-        const int VK_MENU = 0x12;
-        const int VK_SHIFT = 0x10;
-        const int VK_B = 0x42;
-        const uint KEYEVENTF_KEYUP = 0x0002;
+        private const int VK_CONTROL = 0x11;
+        private const int VK_MENU = 0x12;
+        private const int VK_SHIFT = 0x10;
+        private const int VK_B = 0x42;
+        private const int VK_S = 0x53;
+        private const int VK_R = 0x52;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
 
-        public static bool LikeTrack() {
-            try {
-                var processes = Process.GetProcessesByName("Spotify");
-                IntPtr spotifyHwnd = IntPtr.Zero;
-                foreach (var p in processes) {
-                    if (p.MainWindowHandle != IntPtr.Zero) {
-                        spotifyHwnd = p.MainWindowHandle;
-                        break;
-                    }
-                }
-                if (spotifyHwnd == IntPtr.Zero) {
-                    spotifyHwnd = FindWindow("SpotifyMainWindow", null);
-                }
-                if (spotifyHwnd == IntPtr.Zero) {
-                    spotifyHwnd = FindWindow("Chrome_WidgetWin_0", null);
-                }
-
-                IntPtr prevFg = GetForegroundWindow();
-                if (spotifyHwnd != IntPtr.Zero) {
-                    SetForegroundWindow(spotifyHwnd);
-                    Thread.Sleep(35);
-                }
-
-                keybd_event((byte)VK_MENU, 0, 0, UIntPtr.Zero);
-                keybd_event((byte)VK_SHIFT, 0, 0, UIntPtr.Zero);
-                keybd_event((byte)VK_B, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(25);
-                keybd_event((byte)VK_B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                keybd_event((byte)VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                keybd_event((byte)VK_MENU, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-                if (prevFg != IntPtr.Zero && prevFg != spotifyHwnd) {
-                    Thread.Sleep(25);
-                    SetForegroundWindow(prevFg);
-                }
-                return true;
-            } catch {
-                return false;
+        private static IntPtr GetSpotifyWindow() {
+            var processes = Process.GetProcessesByName("Spotify");
+            foreach (var p in processes) {
+                if (p.MainWindowHandle != IntPtr.Zero) return p.MainWindowHandle;
             }
+            IntPtr hwnd = FindWindow("SpotifyMainWindow", null);
+            if (hwnd == IntPtr.Zero) hwnd = FindWindow("Chrome_WidgetWin_0", null);
+            return hwnd;
+        }
+
+        public static void ToggleLike() {
+            IntPtr spotifyHwnd = GetSpotifyWindow();
+            IntPtr prevFg = GetForegroundWindow();
+            uint curThread = GetCurrentThreadId();
+            uint fgThread = GetWindowThreadProcessId(prevFg, IntPtr.Zero);
+            uint spThread = spotifyHwnd != IntPtr.Zero ? GetWindowThreadProcessId(spotifyHwnd, IntPtr.Zero) : 0;
+            if (spThread != 0) AttachThreadInput(curThread, spThread, true);
+
+            if (spotifyHwnd != IntPtr.Zero) {
+                SetForegroundWindow(spotifyHwnd);
+                Thread.Sleep(30);
+            }
+            keybd_event((byte)VK_MENU, 0, 0, UIntPtr.Zero);
+            keybd_event((byte)VK_SHIFT, 0, 0, UIntPtr.Zero);
+            keybd_event((byte)VK_B, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event((byte)VK_B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event((byte)VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event((byte)VK_MENU, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            if (prevFg != IntPtr.Zero && prevFg != spotifyHwnd) {
+                Thread.Sleep(20);
+                SetForegroundWindow(prevFg);
+            }
+            if (spThread != 0) AttachThreadInput(curThread, spThread, false);
+        }
+
+        public static void ToggleShuffle() {
+            IntPtr spotifyHwnd = GetSpotifyWindow();
+            IntPtr prevFg = GetForegroundWindow();
+            uint curThread = GetCurrentThreadId();
+            uint fgThread = GetWindowThreadProcessId(prevFg, IntPtr.Zero);
+            uint spThread = spotifyHwnd != IntPtr.Zero ? GetWindowThreadProcessId(spotifyHwnd, IntPtr.Zero) : 0;
+            if (spThread != 0) AttachThreadInput(curThread, spThread, true);
+
+            if (spotifyHwnd != IntPtr.Zero) {
+                SetForegroundWindow(spotifyHwnd);
+                Thread.Sleep(30);
+            }
+            keybd_event((byte)VK_CONTROL, 0, 0, UIntPtr.Zero);
+            keybd_event((byte)VK_S, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event((byte)VK_S, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event((byte)VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            if (prevFg != IntPtr.Zero && prevFg != spotifyHwnd) {
+                Thread.Sleep(20);
+                SetForegroundWindow(prevFg);
+            }
+            if (spThread != 0) AttachThreadInput(curThread, spThread, false);
+        }
+
+        public static void ToggleRepeat() {
+            IntPtr spotifyHwnd = GetSpotifyWindow();
+            IntPtr prevFg = GetForegroundWindow();
+            uint curThread = GetCurrentThreadId();
+            uint fgThread = GetWindowThreadProcessId(prevFg, IntPtr.Zero);
+            uint spThread = spotifyHwnd != IntPtr.Zero ? GetWindowThreadProcessId(spotifyHwnd, IntPtr.Zero) : 0;
+            if (spThread != 0) AttachThreadInput(curThread, spThread, true);
+
+            if (spotifyHwnd != IntPtr.Zero) {
+                SetForegroundWindow(spotifyHwnd);
+                Thread.Sleep(30);
+            }
+            keybd_event((byte)VK_CONTROL, 0, 0, UIntPtr.Zero);
+            keybd_event((byte)VK_R, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event((byte)VK_R, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event((byte)VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            if (prevFg != IntPtr.Zero && prevFg != spotifyHwnd) {
+                Thread.Sleep(20);
+                SetForegroundWindow(prevFg);
+            }
+            if (spThread != 0) AttachThreadInput(curThread, spThread, false);
         }
     }
-}
 
-namespace AudioMeter {
-    [ComImport]
     [Guid("BCDE0395-E52F-467C-8E3D-C4579291433E")]
-    public class MMDeviceEnumeratorComObject { }
+    [ComImport]
+    class MMDeviceEnumeratorComObject { }
 
-    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IMMDeviceEnumerator {
-        int NotImpl1();
+    [Guid("A95664D2-9614-4F35-A746-DE8D563617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IMMDeviceEnumerator {
         [PreserveSig]
         int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppDevice);
     }
 
     [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IMMDevice {
+    interface IMMDevice {
         [PreserveSig]
         int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
     }
@@ -226,10 +279,9 @@ namespace AudioMeter {
 
 try { Add-Type -TypeDefinition $csharpHelper -Language CSharp -ReferencedAssemblies "System.Drawing" } catch {}
 
-$global:coverJpg = Join-Path $PSScriptRoot "cover.jpg"
-$global:coverPng = Join-Path $PSScriptRoot "cover.png"
-$global:umbJpg = "C:\Umbrella\scripts\cover.jpg"
-$global:umbPng = "C:\Umbrella\scripts\cover.png"
+$tempDir = [System.IO.Path]::GetTempPath()
+$global:coverJpg = Join-Path $tempDir "dynamic_island_cover.jpg"
+$global:coverPng = Join-Path $tempDir "dynamic_island_cover.png"
 $global:lastSavedTrack = ""
 $global:coverVersion = 0
 $global:coverBase64 = ""
@@ -262,197 +314,219 @@ function Find-BestSession($mgr) {
         }
     }
     
-    if ($null -ne $playingAnySession) { return $playingAnySession }
-    if ($null -ne $musicSession) { return $musicSession }
-    return $mgr.GetCurrentSession()
-}
-
-function Fetch-OnlineArtwork($query) {
-    try {
-        $term = [System.Web.HttpUtility]::UrlEncode($query)
-        $url = "https://itunes.apple.com/search?term=$term&limit=1&entity=song"
-        $res = Invoke-RestMethod -Uri $url -TimeoutSec 2
-        if ($res -and $res.results -and $res.results.Count -gt 0) {
-            $artUrl = $res.results[0].artworkUrl100
-            if ($artUrl) {
-                $artUrl600 = $artUrl.Replace("100x100bb.jpg", "600x600bb.jpg")
-                Invoke-WebRequest -Uri $artUrl600 -OutFile $global:coverJpg -TimeoutSec 3
-                if (Test-Path $global:coverJpg) {
-                    $img = [System.Drawing.Image]::FromFile($global:coverJpg)
-                    $img.Save($global:coverPng, [System.Drawing.Imaging.ImageFormat]::Png)
-                    $img.Dispose()
-                    return $true
-                }
-            }
-        }
-    } catch {}
-    return $false
+    if ($playingAnySession) { return $playingAnySession }
+    if ($musicSession) { return $musicSession }
+    return $sessions[0]
 }
 
 function Get-MediaInfo {
     try {
-        $mgr = AwaitTask ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
-        if ($null -eq $mgr) { return @{ is_playing = $false } }
-        
+        $mgrTask = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()
+        $mgr = AwaitTask $mgrTask ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+        if ($null -eq $mgr) { return $null }
+
         $session = Find-BestSession $mgr
-        if ($null -eq $session) { return @{ is_playing = $false } }
-        
-        $props = AwaitTask ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
+        if ($null -eq $session) { return $null }
+
+        $propsTask = $session.TryGetMediaPropertiesAsync()
+        $props = AwaitTask $propsTask ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
+        if ($null -eq $props) { return $null }
+
         $playback = $session.GetPlaybackInfo()
         $timeline = $session.GetTimelineProperties()
-        
-        $isPlaying = ($playback.PlaybackStatus -eq [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing)
-        
-        $pos = 0
-        $dur = 0
-        if ($null -ne $timeline) {
-            $pos = [math]::Round($timeline.Position.TotalSeconds)
-            $dur = [math]::Round($timeline.EndTime.TotalSeconds)
+
+        $isPlaying = if ($playback) { 
+            $playback.PlaybackStatus -eq [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing 
+        } else { $false }
+
+        $isShuffle = if ($playback) { $playback.IsShuffleActive } else { $false }
+        $repeatMode = 0
+        if ($playback -and $playback.AutoRepeatMode) {
+            $repStr = $playback.AutoRepeatMode.ToString()
+            if ($repStr -eq "List") { $repeatMode = 1 }
+            elseif ($repStr -eq "Track") { $repeatMode = 2 }
         }
-        
-        $title = if ($props -and $props.Title) { $props.Title } else { "" }
-        $artist = if ($props -and $props.Artist) { $props.Artist } else { "" }
-        $album = if ($props -and $props.AlbumTitle) { $props.AlbumTitle } else { "" }
-        
-        $currentTrackKey = "$title|$artist|$album"
-        
-        if ($currentTrackKey -ne $global:lastSavedTrack -and $title -ne "") {
+
+        $pos = if ($timeline) { [int]$timeline.Position.TotalSeconds } else { 0 }
+        $dur = if ($timeline) { [int]$timeline.EndTime.TotalSeconds } else { 0 }
+
+        $title = if ($props.Title) { $props.Title.Trim() } else { "" }
+        $artist = if ($props.Artist) { $props.Artist.Trim() } else { "" }
+        $album = if ($props.AlbumTitle) { $props.AlbumTitle.Trim() } else { "" }
+        $trackKey = "$artist - $title"
+
+        if ($trackKey -ne $global:lastSavedTrack -and $title -ne "") {
+            $global:lastSavedTrack = $trackKey
+            $global:coverVersion++
+            $global:coverBase64 = ""
             $saved = $false
+
             if ($props.Thumbnail) {
                 try {
-                    $stream = AwaitTask ($props.Thumbnail.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])
+                    $streamTask = $props.Thumbnail.OpenReadAsync()
+                    $stream = AwaitTask $streamTask ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])
                     if ($stream) {
                         $saved = [WinRtHelper.ThumbnailSaver]::SaveStream($stream, $global:coverJpg, $global:coverPng)
                     }
                 } catch {}
             }
+
             if (-not $saved) {
-                $saved = Fetch-OnlineArtwork "$artist $title"
-            }
-            
-            if ($saved) {
-                try { [System.IO.File]::Copy($global:coverJpg, $global:umbJpg, $true) } catch {}
-                try { [System.IO.File]::Copy($global:coverPng, $global:umbPng, $true) } catch {}
-                
                 try {
-                    $bytes = [System.IO.File]::ReadAllBytes($global:coverPng)
+                    $q = [System.Web.HttpUtility]::UrlEncode($trackKey)
+                    $itunesUrl = "https://itunes.apple.com/search?term=$q&limit=1&entity=song"
+                    $jsonRes = Invoke-RestMethod -Uri $itunesUrl -TimeoutSec 3 -ErrorAction SilentlyContinue
+                    if ($jsonRes -and $jsonRes.resultCount -gt 0 -and $jsonRes.results[0].artworkUrl100) {
+                        $artUrl = $jsonRes.results[0].artworkUrl100 -replace "100x100bb.jpg", "600x600bb.jpg"
+                        Invoke-WebRequest -Uri $artUrl -OutFile $global:coverJpg -TimeoutSec 4 -ErrorAction SilentlyContinue
+                        Copy-Item $global:coverJpg $global:coverPng -Force -ErrorAction SilentlyContinue
+                        $saved = $true
+                    }
+                } catch {}
+            }
+
+            if (Test-Path $global:coverJpg) {
+                try {
+                    $bytes = [System.IO.File]::ReadAllBytes($global:coverJpg)
                     $global:coverBase64 = [Convert]::ToBase64String($bytes)
-                } catch {
-                    $global:coverBase64 = ""
-                }
-                
-                try {
-                    $global:coverColor = [WinRtHelper.ThumbnailSaver]::ExtractDominantColor($global:coverPng)
-                } catch {
-                    $global:coverColor = @(255, 45, 85)
-                }
-                
-                $global:lastSavedTrack = $currentTrackKey
-                $global:coverVersion++
+                    $global:coverColor = [WinRtHelper.ThumbnailSaver]::ExtractDominantColor($global:coverJpg)
+                } catch {}
             }
         }
-        
-        $hasCover = [System.IO.File]::Exists($global:coverPng) -or [System.IO.File]::Exists($global:coverJpg)
-        $audioBars = [AudioMeter.Meter]::GetBars()
-        
+
+        $appId = $session.SourceAppId
+        $hasCover = ($global:coverBase64 -ne "") -or (Test-Path $global:coverPng)
+        $bars = [WinRtHelper.Meter]::GetBars()
+
+        $cleanPath = $global:coverPng.Replace('\', '/')
+        $cleanJpg = $global:coverJpg.Replace('\', '/')
+
         return @{
-            is_playing = $isPlaying
-            title = $title
-            artist = $artist
-            album = $album
-            position = $pos
-            duration = $dur
-            app = $session.SourceAppId
-            cover_path = $global:coverPng.Replace("\", "/")
-            cover_jpg = $global:coverJpg.Replace("\", "/")
+            is_playing   = $isPlaying
+            title        = $title
+            artist       = $artist
+            album        = $album
+            app          = $appId
+            position     = $pos
+            duration     = $dur
+            cover_path   = $cleanPath
+            cover_jpg    = $cleanJpg
             cover_base64 = $global:coverBase64
-            cover_ver = $global:coverVersion
-            cover_color = $global:coverColor
-            has_cover = $hasCover
-            waveform = $audioBars
+            cover_ver    = $global:coverVersion
+            has_cover    = $hasCover
+            cover_color  = $global:coverColor
+            waveform     = $bars
+            shuffle      = $isShuffle
+            repeat       = $repeatMode
         }
     } catch {
-        return @{ is_playing = $false; error = $_.ToString() }
+        return $null
     }
 }
 
-function Control-Media($action) {
+function Handle-MediaCommand($cmd) {
     try {
-        $mgr = AwaitTask ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
-        if ($null -eq $mgr) { return $false }
-        $session = Find-BestSession $mgr
-        if ($null -eq $session) { return $false }
-        
-        switch ($action) {
-            "playpause" {
-                $task = $session.TryTogglePlayPauseAsync()
-                $null = AwaitTask $task ([System.Boolean])
+        $mgrTask = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()
+        $mgr = AwaitTask $mgrTask ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+        $session = if ($mgr) { Find-BestSession $mgr } else { $null }
+
+        if ($cmd -eq "playpause") {
+            if ($session) { $session.TryTogglePlayPauseAsync() | Out-Null }
+        } elseif ($cmd -eq "next") {
+            if ($session) { $session.TrySkipNextAsync() | Out-Null }
+        } elseif ($cmd -eq "prev") {
+            if ($session) { $session.TrySkipPreviousAsync() | Out-Null }
+        } elseif ($cmd -eq "shuffle") {
+            [WinRtHelper.SpotifyController]::ToggleShuffle()
+            if ($session) {
+                try {
+                    $pb = $session.GetPlaybackInfo()
+                    $cur = if ($pb) { $pb.IsShuffleActive } else { $false }
+                    $session.TryChangeShuffleActiveAsync(-not $cur) | Out-Null
+                } catch {}
             }
-            "next" {
-                $task = $session.TrySkipNextAsync()
-                $null = AwaitTask $task ([System.Boolean])
+        } elseif ($cmd -eq "repeat") {
+            [WinRtHelper.SpotifyController]::ToggleRepeat()
+            if ($session) {
+                try {
+                    $pb = $session.GetPlaybackInfo()
+                    $curRep = if ($pb) { $pb.AutoRepeatMode.ToString() } else { "None" }
+                    $nextRep = [Windows.Media.MediaPlaybackAutoRepeatMode]::None
+                    if ($curRep -eq "None") { $nextRep = [Windows.Media.MediaPlaybackAutoRepeatMode]::List }
+                    elseif ($curRep -eq "List") { $nextRep = [Windows.Media.MediaPlaybackAutoRepeatMode]::Track }
+                    $session.TryChangeAutoRepeatModeAsync($nextRep) | Out-Null
+                } catch {}
             }
-            "prev" {
-                $task = $session.TrySkipPreviousAsync()
-                $null = AwaitTask $task ([System.Boolean])
-            }
-            "like" {
-                $null = [WinRtHelper.SpotifyController]::LikeTrack()
-            }
+        } elseif ($cmd -eq "like") {
+            [WinRtHelper.SpotifyController]::ToggleLike()
         }
-        return $true
-    } catch {
-        return $false
-    }
+    } catch {}
 }
 
-$port = 45455
 $listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add("http://127.0.0.1:$port/")
-$listener.Start()
-Write-Host "Media Bridge running on http://127.0.0.1:$port/"
-
+$listener.Prefixes.Add("http://127.0.0.1:45455/")
 try {
-    while ($listener.IsListening) {
+    $listener.Start()
+} catch {
+    Exit
+}
+
+while ($listener.IsListening) {
+    try {
         $context = $listener.GetContext()
         $request = $context.Request
         $response = $context.Response
-        
+
         $response.Headers.Add("Access-Control-Allow-Origin", "*")
         $response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        
+        $response.Headers.Add("Access-Control-Allow-Headers", "Content-Type")
+
         if ($request.HttpMethod -eq "OPTIONS") {
             $response.StatusCode = 200
             $response.Close()
             continue
         }
-        
-        $path = $request.Url.AbsolutePath.ToLower()
-        $jsonResult = ""
-        
-        if ($path -eq "/media/playpause") {
-            $null = Control-Media "playpause"
-            $jsonResult = '{"status":"ok"}'
-        } elseif ($path -eq "/media/next") {
-            $null = Control-Media "next"
-            $jsonResult = '{"status":"ok"}'
-        } elseif ($path -eq "/media/prev") {
-            $null = Control-Media "prev"
-            $jsonResult = '{"status":"ok"}'
-        } elseif ($path -eq "/media/like") {
-            $null = Control-Media "like"
-            $jsonResult = '{"status":"ok"}'
-        } else {
+
+        $path = $request.Url.LocalPath.ToLower()
+
+        if ($path -eq "/media") {
             $data = Get-MediaInfo
-            $jsonResult = $data | ConvertTo-Json -Compress
+            if ($null -eq $data) {
+                $bars = [WinRtHelper.Meter]::GetBars()
+                $data = @{
+                    is_playing   = $false
+                    title        = ""
+                    artist       = ""
+                    album        = ""
+                    app          = ""
+                    position     = 0
+                    duration     = 0
+                    cover_path   = ""
+                    cover_jpg    = ""
+                    cover_base64 = ""
+                    cover_ver    = 0
+                    has_cover    = $false
+                    cover_color  = @(255, 45, 85)
+                    waveform     = $bars
+                    shuffle      = $false
+                    repeat       = 0
+                }
+            }
+            $json = $data | ConvertTo-Json -Compress -Depth 3
+            $buffer = [System.Text.Encoding]::UTF8.GetBytes($json)
+            $response.ContentType = "application/json; charset=utf-8"
+            $response.ContentLength64 = $buffer.Length
+            $response.OutputStream.Write($buffer, 0, $buffer.Length)
+        } elseif ($path -match "^/media/(playpause|next|prev|shuffle|repeat|like)$") {
+            $cmd = $matches[1]
+            Handle-MediaCommand $cmd
+            $json = '{"status":"ok"}'
+            $buffer = [System.Text.Encoding]::UTF8.GetBytes($json)
+            $response.ContentType = "application/json; charset=utf-8"
+            $response.ContentLength64 = $buffer.Length
+            $response.OutputStream.Write($buffer, 0, $buffer.Length)
         }
-        
-        $buffer = [System.Text.Encoding]::UTF8.GetBytes($jsonResult)
-        $response.ContentType = "application/json; charset=utf-8"
-        $response.ContentLength64 = $buffer.Length
-        $response.OutputStream.Write($buffer, 0, $buffer.Length)
+
         $response.Close()
-    }
-} finally {
-    $listener.Stop()
+    } catch {}
 }
