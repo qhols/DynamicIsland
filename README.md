@@ -10,13 +10,13 @@ Supports Spotify, Apple Music, Yandex Music, YouTube, browser audio, and other W
 
 ## Usage
 
-Just download and run `media_bridge.exe` [from the release](https://github.com/qhols/DynamicIsland/releases/latest). Make sure the `sounds` folder is placed in the same directory alongside the executable.
+Download `media_bridge.exe` and `sounds.zip` [from the latest release](https://github.com/qhols/DynamicIsland/releases/latest). Extract the `sounds` folder into the same directory alongside `media_bridge.exe`, then run `media_bridge.exe`.
 
 It will run silently in the background and start listening on port 45455. If launched again, it automatically cleans up any previous instance and takes over the port.
 
 Alternatively, you can run the PowerShell script directly:
 ```
-start_bridge.bat
+run_bridge.bat
 ```
 
 ## Endpoints
