@@ -12,7 +12,7 @@ Supports Spotify, Apple Music, Yandex Music, YouTube, browser audio, and other W
 
 Download `media_bridge.exe` and `sounds.zip` [from the latest release](https://github.com/qhols/DynamicIsland/releases/latest). Extract the `sounds` folder into the same directory alongside `media_bridge.exe`, then run `media_bridge.exe`.
 
-It will run silently in the background and start listening on port 45455. If launched again, it automatically cleans up any previous instance and takes over the port.
+> **Note:** The program runs completely silently in the background (no console window will appear). It is fully single-instance safe — even if launched multiple times, it automatically cleans up any previous instance and keeps only one active copy running on port 45455.
 
 Alternatively, you can run the PowerShell script directly:
 ```
